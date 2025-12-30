@@ -1,13 +1,7 @@
-import { use } from "react";
+import { pool } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type PasteResponse = {
-  content: string;
-  remaining_views: number | null;
-  expires_at: string | null;
-};
 
 export default async function PastePage({
   params,
@@ -20,20 +14,24 @@ export default async function PastePage({
     return <h1>Invalid paste ID</h1>;
   }
 
-  // ✅ RELATIVE fetch — works locally & on Vercel
-  const res = await fetch(`/api/pastes/${id}`, {
-    cache: "no-store",
-  });
+  const { rows } = await pool.query(
+    `
+    SELECT content
+    FROM pastes
+    WHERE id = $1
+      AND (expires_at IS NULL OR expires_at > NOW())
+      AND (max_views IS NULL OR view_count < max_views)
+    `,
+    [id]
+  );
 
-  if (!res.ok) {
+  if (rows.length === 0) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <h1 className="text-red-600">Paste not found</h1>
       </main>
     );
   }
-
-  const data: PasteResponse = await res.json();
 
   return (
     <main className="min-h-screen bg-[#F5F3EE] flex items-center justify-center p-4">
@@ -43,7 +41,7 @@ export default async function PastePage({
         </h1>
 
         <pre className="bg-green-50 border border-green-200 rounded-lg p-4 font-mono whitespace-pre-wrap break-words">
-          {data.content}
+          {rows[0].content}
         </pre>
       </div>
     </main>
