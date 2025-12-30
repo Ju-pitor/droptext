@@ -14,7 +14,7 @@ export default async function PastePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id } = await params;
 
   if (!id) {
     return <h1>Invalid paste ID</h1>;
